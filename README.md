@@ -11,6 +11,8 @@ challenging to find a useful resource that
 - shows multiple octaves
 - in a way that can be composed into other resources (not a giant poster)
 
+<img src="example_csharp_major_rh.jpg" alt="scale for csharp major for the right hand" width="200"/>
+
 In each image:
 
 - a label is at the top with the scale name (and its enharmonic equivalent)
