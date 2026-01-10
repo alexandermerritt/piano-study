@@ -11,8 +11,6 @@ challenging to find a useful resource that
 - shows multiple octaves
 - in a way that can be composed into other resources (not a giant poster)
 
-<img src="example_csharp_major_rh.jpg" alt="scale for csharp major for the right hand" width="200"/>
-
 In each image:
 
 - a label is at the top with the scale name (and its enharmonic equivalent)
@@ -20,9 +18,7 @@ In each image:
 - numbers are added to each key to indicate fingering to play the scale
 - dots put on the root note to show progression between octaves
 
-If you play just a single octave, use the fingering shown for the second
-octave. For two or more octaves, use the fingering for the first octave
-repeatedly, and the second octave shown for the final octave.
+![scale for c-sharp major for the right hand](https://github.com/alexandermerritt/piano-scales/blob/main/example_csharp_major_rh.png?raw=true)
 
 ## How to set up
 
