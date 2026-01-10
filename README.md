@@ -22,13 +22,7 @@ If you play just a single octave, use the fingering shown for the second
 octave. For two or more octaves, use the fingering for the first octave
 repeatedly, and the second octave shown for the final octave.
 
-# How to set up
-
-```
-python -m venv venv
-pip install pillow
-
-```
+## How to set up
 
 Download the font needed to display the music symbols:
 
@@ -38,15 +32,17 @@ Download the font needed to display the music symbols:
 wget https://github.com/google/fonts/raw/refs/heads/main/ofl/libertinusmath/LibertinusMath-Regular.ttf
 ```
 
-# How to run
+## How to run
 
 Run the script to generate the scale images
 
 ```
+source venv/bin/activate # or activate.fish
+pip install -r python_requirements.txt
 python generate-scales.py
 ```
 
-# References
+## References
 
 *The Complete Book of Scales, Chords, Arpeggios & Cadences* by Willard A.
 Palmer, Morton Manus, and Amanda Vick Lethco:
