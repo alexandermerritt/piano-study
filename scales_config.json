@@ -1,0 +1,138 @@
+{
+  "pages": [
+    {
+      "orientation": "landscape",
+      "scales_per_page": 4,
+      "scales": [
+        {
+          "root": "C",
+          "type": "major"
+        },
+        {
+          "root": "G",
+          "type": "major"
+        },
+        {
+          "root": "D",
+          "type": "major"
+        },
+        {
+          "root": "A",
+          "type": "major"
+        }
+      ]
+    },
+    {
+      "orientation": "landscape",
+      "scales_per_page": 4,
+      "scales": [
+        {
+          "root": "E",
+          "type": "major"
+        },
+        {
+          "root": "B",
+          "type": "major"
+        },
+        {
+          "root": "F#",
+          "type": "major"
+        },
+        {
+          "root": "C#",
+          "type": "major"
+        }
+      ]
+    },
+    {
+      "orientation": "landscape",
+      "scales_per_page": 4,
+      "scales": [
+        {
+          "root": "F",
+          "type": "major"
+        },
+        {
+          "root": "Bb",
+          "type": "major"
+        },
+        {
+          "root": "Eb",
+          "type": "major"
+        },
+        {
+          "root": "Ab",
+          "type": "major"
+        }
+      ]
+    },
+
+
+    {
+      "orientation": "landscape",
+      "scales_per_page": 4,
+      "scales": [
+        {
+          "root": "A",
+          "type": "harmonic_minor"
+        },
+        {
+          "root": "E",
+          "type": "harmonic_minor"
+        },
+        {
+          "root": "B",
+          "type": "harmonic_minor"
+        },
+        {
+          "root": "F#",
+          "type": "harmonic_minor"
+        }
+      ]
+    },
+    {
+      "orientation": "landscape",
+      "scales_per_page": 4,
+      "scales": [
+        {
+          "root": "C#",
+          "type": "harmonic_minor"
+        },
+        {
+          "root": "G#",
+          "type": "harmonic_minor"
+        },
+        {
+          "root": "D#",
+          "type": "harmonic_minor"
+        },
+        {
+          "root": "A#",
+          "type": "harmonic_minor"
+        }
+      ]
+    },
+    {
+      "orientation": "landscape",
+      "scales_per_page": 4,
+      "scales": [
+        {
+          "root": "D",
+          "type": "harmonic_minor"
+        },
+        {
+          "root": "G",
+          "type": "harmonic_minor"
+        },
+        {
+          "root": "C",
+          "type": "harmonic_minor"
+        },
+        {
+          "root": "F",
+          "type": "harmonic_minor"
+        }
+      ]
+    }
+  ]
+}

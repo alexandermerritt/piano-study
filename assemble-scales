@@ -1,0 +1,276 @@
+#!/usr/bin/env python3
+"""
+Piano Scales PDF Compiler
+Creates customized PDFs from piano scale images with flexible layouts.
+Usage: python compile_scales_pdf.py config.json
+"""
+
+import json
+import argparse
+from pathlib import Path
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.pdfgen import canvas
+from reportlab.lib.utils import ImageReader
+from reportlab.lib.units import inch
+
+def sanitize_filename(name):
+    """Sanitize scale name for filename lookup."""
+    return name.replace('#', 'sharp').replace('b', 'flat').replace(' ', '_').lower()
+
+def create_pdf_from_config(config_file, image_dir='piano_scales', output_pdf='scales.pdf'):
+    """
+    Create a PDF based on a JSON configuration file.
+    
+    Config format:
+    {
+        "pages": [
+            {
+                "orientation": "landscape",  // "portrait" or "landscape"
+                "scales_per_page": 4,
+                "scales": [
+                    {"root": "C", "type": "major"},
+                    {"root": "D", "type": "major"},
+                    {"root": "E", "type": "major"},
+                    {"root": "F", "type": "major"}
+                ],
+                "title": "C, D, E, F Major Scales"  // optional
+            },
+            {
+                "orientation": "landscape",
+                "scales_per_page": 8,
+                "scales": [
+                    {"root": "C", "type": "natural_minor"},
+                    {"root": "D", "type": "natural_minor"},
+                    ...
+                ]
+            }
+        ]
+    }
+    """
+    
+    with open(config_file, 'r') as f:
+        config = json.load(f)
+    
+    # Create the PDF
+    c = canvas.Canvas(output_pdf, pagesize=letter)
+    
+    for page_config in config['pages']:
+        # Set page orientation
+        if page_config.get('orientation', 'landscape') == 'landscape':
+            c.setPageSize(landscape(letter))
+            page_width, page_height = landscape(letter)
+        else:
+            c.setPageSize(letter)
+            page_width, page_height = letter
+        
+        # Get page settings
+        scales_per_page = page_config.get('scales_per_page', 4)
+        scales = page_config.get('scales', [])
+        title = page_config.get('title', '')
+        
+        # Draw title if provided
+        y_offset = page_height - 30
+        if title:
+            c.setFont("Helvetica-Bold", 14)
+            c.drawString(40, y_offset, title)
+            y_offset -= 40
+        else:
+            y_offset -= 10
+        
+        # Calculate layout
+        margin = 40
+        usable_height = y_offset - margin
+        scale_height = usable_height / scales_per_page
+        
+        # Column widths (left hand, right hand)
+        column_width = (page_width - 3 * margin) / 2
+        lh_x = margin
+        rh_x = margin * 2 + column_width
+        
+        # Draw each scale
+        for i, scale_info in enumerate(scales[:scales_per_page]):
+            root = scale_info['root']
+            scale_type = scale_info['type']
+            
+            # Calculate y position for this scale
+            scale_y = y_offset - (i + 1) * scale_height + 10
+            
+            # Draw scale label
+            #c.setFont("Helvetica-Bold", 10)
+            #label = f"{root} {scale_type.replace('_', ' ').title()}"
+            #c.drawString(margin, scale_y + scale_height - 15, label)
+            
+            # Left hand image
+            lh_filename = f"{sanitize_filename(root)}_{scale_type}_lh.png"
+            lh_path = Path(image_dir) / lh_filename
+            
+            if lh_path.exists():
+                img = ImageReader(str(lh_path))
+                img_height = scale_height - 25
+                c.drawImage(img, lh_x, scale_y, 
+                          width=column_width, height=img_height, 
+                          preserveAspectRatio=True, anchor='sw')
+            else:
+                c.setFont("Helvetica", 8)
+                c.drawString(lh_x, scale_y + scale_height/2, f"Missing: {lh_filename}")
+            
+            # Right hand image
+            rh_filename = f"{sanitize_filename(root)}_{scale_type}_rh.png"
+            rh_path = Path(image_dir) / rh_filename
+            
+            if rh_path.exists():
+                img = ImageReader(str(rh_path))
+                img_height = scale_height - 25
+                c.drawImage(img, rh_x, scale_y, 
+                          width=column_width, height=img_height,
+                          preserveAspectRatio=True, anchor='sw')
+            else:
+                c.setFont("Helvetica", 8)
+                c.drawString(rh_x, scale_y + scale_height/2, f"Missing: {rh_filename}")
+        
+        # Move to next page
+        c.showPage()
+    
+    c.save()
+    print(f"✓ PDF created: {output_pdf}")
+
+def generate_example_config(output_file='scales_config.json'):
+    """Generate an example configuration file."""
+    config = {
+        "pages": [
+            {
+                "orientation": "landscape",
+                "scales_per_page": 4,
+                "title": "C, G, D, A Major Scales",
+                "scales": [
+                    {"root": "C", "type": "major"},
+                    {"root": "G", "type": "major"},
+                    {"root": "D", "type": "major"},
+                    {"root": "A", "type": "major"}
+                ]
+            },
+            {
+                "orientation": "landscape",
+                "scales_per_page": 4,
+                "title": "E, B, F#, Db Major Scales",
+                "scales": [
+                    {"root": "E", "type": "major"},
+                    {"root": "B", "type": "major"},
+                    {"root": "F#", "type": "major"},
+                    {"root": "Db", "type": "major"}
+                ]
+            },
+            {
+                "orientation": "landscape",
+                "scales_per_page": 8,
+                "title": "All Natural Minor Scales (Part 1)",
+                "scales": [
+                    {"root": "C", "type": "natural_minor"},
+                    {"root": "Db", "type": "natural_minor"},
+                    {"root": "D", "type": "natural_minor"},
+                    {"root": "Eb", "type": "natural_minor"},
+                    {"root": "E", "type": "natural_minor"},
+                    {"root": "F", "type": "natural_minor"},
+                    {"root": "F#", "type": "natural_minor"},
+                    {"root": "G", "type": "natural_minor"}
+                ]
+            }
+        ]
+    }
+    
+    with open(output_file, 'w') as f:
+        json.dump(config, f, indent=2)
+    
+    print(f"✓ Example config created: {output_file}")
+    print(f"  Edit this file and run: python {__file__} {output_file}")
+
+def generate_all_scales_config(output_file='all_scales_config.json', scales_per_page=4):
+    """Generate a config with all scales organized by type."""
+    
+    scale_roots = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B', 'Cb']
+    scale_types = ['major', 'natural_minor', 'harmonic_minor']
+    
+    pages = []
+    
+    for scale_type in scale_types:
+        # Split scales into pages
+        for i in range(0, len(scale_roots), scales_per_page):
+            chunk = scale_roots[i:i + scales_per_page]
+            page = {
+                "orientation": "landscape",
+                "scales_per_page": scales_per_page,
+                "title": f"{scale_type.replace('_', ' ').title()} Scales - {chunk[0]} to {chunk[-1]}",
+                "scales": [{"root": root, "type": scale_type} for root in chunk]
+            }
+            pages.append(page)
+    
+    config = {"pages": pages}
+    
+    with open(output_file, 'w') as f:
+        json.dump(config, f, indent=2)
+    
+    print(f"✓ All scales config created: {output_file}")
+    print(f"  Total pages: {len(pages)}")
+    print(f"  Run: python {__file__} {output_file}")
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Compile piano scale images into a customized PDF'
+    )
+    parser.add_argument(
+        'config',
+        nargs='?',
+        help='JSON configuration file (use --example to generate one)'
+    )
+    parser.add_argument(
+        '--image-dir',
+        default='piano_scales',
+        help='Directory containing scale images (default: piano_scales)'
+    )
+    parser.add_argument(
+        '--output',
+        default='scales.pdf',
+        help='Output PDF filename (default: scales.pdf)'
+    )
+    parser.add_argument(
+        '--example',
+        action='store_true',
+        help='Generate an example configuration file'
+    )
+    parser.add_argument(
+        '--all-scales',
+        action='store_true',
+        help='Generate a config with all scales'
+    )
+    parser.add_argument(
+        '--scales-per-page',
+        type=int,
+        default=4,
+        help='Scales per page for --all-scales (default: 4)'
+    )
+    
+    args = parser.parse_args()
+    
+    if args.example:
+        generate_example_config()
+    elif args.all_scales:
+        generate_all_scales_config('all_scales_config.json', args.scales_per_page)
+    elif args.config:
+        create_pdf_from_config(args.config, args.image_dir, args.output)
+    else:
+        parser.print_help()
+        print("\nExamples:")
+        print("  # Generate example config")
+        print("  python compile_scales_pdf.py --example")
+        print("")
+        print("  # Create PDF from config")
+        print("  python compile_scales_pdf.py scales_config.json")
+        print("")
+        print("  # Generate config with all scales (4 per page)")
+        print("  python compile_scales_pdf.py --all-scales")
+        print("")
+        print("  # Generate config with all scales (8 per page)")
+        print("  python compile_scales_pdf.py --all-scales --scales-per-page 8")
+
+if __name__ == '__main__':
+    main()
