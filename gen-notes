@@ -1,0 +1,89 @@
+#!/usr/bin/env python3
+import sys
+import subprocess
+
+# --- Check args ---
+if len(sys.argv) != 4:
+    print(f"Usage: {sys.argv[0]} START_NOTE END_NOTE CLEF")
+    print("Example: generate_notes.py F2 G4 bass")
+    sys.exit(1)
+
+start_note = sys.argv[1].upper()
+end_note   = sys.argv[2].upper()
+clef       = sys.argv[3].lower()
+
+valid_clefs = ["treble", "bass", "alto", "tenor"]
+if clef not in valid_clefs:
+    print(f"Invalid clef: {clef}. Must be one of {', '.join(valid_clefs)}")
+    sys.exit(1)
+
+# --- Note definitions ---
+NOTES = ["C", "D", "E", "F", "G", "A", "B"]
+
+# LilyPond suffixes by octave (C0 = ,,,, ... C4 = "" ... C5 = ' etc.)
+SUFFIXES = [
+    ",,,",
+    ",,",
+    ",",
+    "",
+    "'",
+    "''",
+    "'''",
+]
+
+def note_to_index(note: str) -> int:
+    """Map scientific note name like F3 -> integer index (7 notes per octave)."""
+    name = note[0].upper()
+    octave = int(note[1:])
+    note_idx = NOTES.index(name)
+    return octave * 7 + note_idx
+
+def index_to_note(idx: int):
+    """Convert index back into scientific name and LilyPond note syntax."""
+    octave = idx // 7
+    note_idx = idx % 7
+    sci_note = f"{NOTES[note_idx]}{octave}"
+    suffix = SUFFIXES[octave]
+    # number appended is type of note: 1 whole, 4 quarter, etc.
+    ly_note = NOTES[note_idx].lower() + suffix + "1"
+    return sci_note, ly_note
+
+# --- Range calculation ---
+start_idx = note_to_index(start_note)
+end_idx   = note_to_index(end_note)
+
+if start_idx > end_idx:
+    print("Error: start note must be lower than end note")
+    sys.exit(1)
+
+# --- Generate LilyPond files ---
+for idx in range(start_idx, end_idx + 1):
+    sci_note, ly_note = index_to_note(idx)
+    filename = f"{sci_note}-{clef}"
+
+    print(f"Generating {sci_note} ({ly_note}) on {clef} clef")
+
+    lilypond_input = f"""
+\\version "2.24.2"
+\\paper {{ #(set-paper-size "a7landscape") indent=0 line-width=60 }}
+\\header {{ tagline = ##f }}
+\\layout {{ ragged-right = ##t }}
+\\score {{
+  \\new Staff \\with {{ \\remove "Time_signature_engraver" }} {{
+    \\clef "{clef}"
+    {ly_note}
+  }}
+}}
+"""
+
+    subprocess.run(
+        ["lilypond", "--png", "-dbackend=eps", "-dno-gs-load-fonts", \
+         "-dinclude-eps-fonts", "-dresolution=300", "-o", filename, "-"],
+        input=lilypond_input.encode("utf-8"),
+        check=True
+    )
+    subprocess.run(
+        ["gm", "convert", "-trim", filename + ".png", filename + ".png"],
+        check=True
+    )
+
