@@ -1,0 +1,190 @@
+#!/usr/bin/env python3
+import sys
+import subprocess
+import genanki
+import random
+import os
+
+MAJORS = ['C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#',
+          'F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Cb']
+MINORS = ['A', 'E', 'B', 'F#', 'C#', 'G#', 'D#',
+          'D', 'G', 'C', 'F', 'Bb', 'Eb', 'Ab']
+
+KEY_UNICODE = {
+    "C": "C",
+    "C#": "C♯",
+    "Cb": "C♭",
+    "D": "D",
+    "D#": "D♯",
+    "Db": "D♭",
+    "E": "E",
+    "Eb": "E♭",
+    "F": "F",
+    "F#": "F♯",
+    "G": "G",
+    "G#": "G♯",
+    "Gb": "G♭",
+    "A": "A",
+    "A#": "A♯",
+    "Ab": "A♭",
+    "B": "B",
+    "Bb": "B♭",
+}
+
+KEY_LILY = {
+    "C": "c",
+    "C#": "cis",
+    "Cb": "ces",
+    "D": "d",
+    "D#": "dis",
+    "Db": "des",
+    "E": "e",
+    "Eb": "ees",
+    "F": "f",
+    "F#": "fis",
+    "G": "g",
+    "G#": "gis",
+    "Gb": "ges",
+    "A": "a",
+    "A#": "ais",
+    "Ab": "aes",
+    "B": "b",
+    "Bb": "bes",
+}
+
+KEY_REL = {
+    "C": ["C", "Am"],
+    "G": ["G", "Em"],
+    "D": ["D", "Bm"],
+    "A": ["A", KEY_UNICODE["F#"] + "m"],
+    "E": ["E", KEY_UNICODE["C#"] + "m"],
+    "B":  ["B", KEY_UNICODE["G#"] + "m"],
+    "F#": [KEY_UNICODE["F#"], KEY_UNICODE["D#"] + "m"],
+    "C#": [KEY_UNICODE["C#"], KEY_UNICODE["A#"] + "m"],
+    "F": ["F", "Dm"],
+    "Bb": [KEY_UNICODE["Bb"], "Gm"],
+    "Eb": [KEY_UNICODE["Eb"], "Cm"],
+    "Ab": [KEY_UNICODE["Ab"], "Fm"],
+    "Db": [KEY_UNICODE["Db"], KEY_UNICODE["Bb"] + "m"],
+    "Gb": [KEY_UNICODE["Gb"], KEY_UNICODE["Eb"] + "m"],
+    "Cb": [KEY_UNICODE["Cb"], KEY_UNICODE["Ab"] + "m"]
+}
+
+def generate_image(key, scale, clef) -> str:
+    filename = f"keysig-{clef}-{key}-{scale}"
+
+    key_lily = f"""{KEY_LILY[key]} \\{scale}"""
+    print(f"Generating {key} on {clef} clef")
+
+    lilypond_input = f"""
+\\version "2.24.2"
+\\paper {{ #(set-paper-size "a7landscape") indent=0 line-width=60 }}
+\\header {{ tagline = ##f }}
+\\layout {{ ragged-right = ##t }}
+\\score {{
+  \\new Staff \\with {{ \\remove "Time_signature_engraver" }} {{
+    \\clef {clef}
+    \\key {key_lily}
+    s1 % spacer rest to force generation without a note
+  }}
+}}
+"""
+
+    cmd = ["lilypond", "--png", "-dbackend=eps", "-dno-gs-load-fonts", \
+         "-dinclude-eps-fonts", "-dresolution=300", "-o", filename, "-"]
+
+    subprocess.run(
+        ["lilypond", "--png", "-dbackend=eps", "-dno-gs-load-fonts", \
+         "-dinclude-eps-fonts", "-dresolution=300", "-o", filename, "-"],
+        input=lilypond_input.encode("utf-8"),
+        check=True
+    )
+    subprocess.run(
+        ["gm", "convert", "-trim", filename + ".png", filename + ".png"],
+        check=True
+    )
+
+    return filename + '.png'
+
+# produce KeyName -> KeySig (image)
+# e.g., "B" -> clef with 5 sharps
+def generate_all(majors, minors, clef) -> dict:
+    index = {}
+    for key in majors:
+        path = generate_image(key, "major", clef)
+        index[key] = path
+    for key in minors:
+        path = generate_image(key, "minor", clef)
+        index[key + "m"] = path
+    return index
+
+def randn(): return random.randrange(1000000,100000000)
+
+def generate_apkg(clef):
+    keys_images = generate_all(MAJORS, MINORS, clef)
+
+    model_name = genanki.Model(
+        randn(),
+        'Image->Text Model',
+        fields=[
+            {'name': 'KeySig'},
+            {'name': 'KeyName'},
+        ],
+        templates=[
+            {
+                'name': 'Card 1',
+                'qfmt': '{{KeyName}}',
+                'afmt': '{{KeySig}}',
+            },
+        ])
+
+    model_sig = genanki.Model(
+        randn(),
+        'Image->Text Model',
+        fields=[
+            {'name': 'KeySig'},
+            {'name': 'KeyName'},
+        ],
+        templates=[
+            {
+                'name': 'Card 1',
+                'qfmt': '{{KeySig}}',
+                'afmt': '{{KeyName}}',
+            },
+        ])
+
+    deck = genanki.Deck(randn(), f"Key sigs {clef} clef")
+
+    media_files = []
+    for key, path in keys_images.items():
+        if os.path.exists(path):
+            media_files.append(path)
+        else:
+            print(f"⚠️ Warning: {path} not found")
+
+        keysig = f'<div style="text-align:center;"><img src="{path}"></div>'
+        keyname = f'<div style="font-size:36px; text-align:center;">"{key}"</div>'
+
+        note = genanki.Note(
+            model = model_name,
+            fields = [keysig, keyname])
+
+        deck.add_note(note)
+
+        # add reverse cards. only unique key sigs, so just the major
+        # keys, and print with relative minors
+        if key in KEY_REL:
+            keys = ' and '.join(KEY_REL[key])
+            keyname = f'<div style="font-size:36px; text-align:center;">"{keys}"</div>'
+            note = genanki.Note(
+                model = model_sig,
+                fields = [keysig, keyname])
+            deck.add_note(note)
+
+    package = genanki.Package(deck)
+    package.media_files = media_files
+    package.write_to_file(f"key-signatures-{clef}-clef.apkg")
+
+if __name__ == "__main__":
+    generate_apkg("treble")
+    generate_apkg("bass")
